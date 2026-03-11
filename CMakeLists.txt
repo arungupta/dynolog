@@ -16,9 +16,24 @@ OFF)
 option(USE_PROMETHEUS "Enable logging to prometheus, this requires
 prometheus-cpp to be installed on the system"
 OFF)
+option(USE_OTLP "Enable OTLP metrics export" OFF)
 
 if(USE_PROMETHEUS)
   find_package(prometheus-cpp CONFIG REQUIRED)
+endif()
+
+if(USE_OTLP)
+  set(WITH_OTLP_GRPC ON CACHE BOOL "")
+  set(WITH_OTLP_HTTP ON CACHE BOOL "")
+  set(BUILD_TESTING OFF CACHE BOOL "")
+  set(WITH_EXAMPLES OFF CACHE BOOL "")
+  set(WITH_ZIPKIN OFF CACHE BOOL "")
+  set(WITH_PROMETHEUS OFF CACHE BOOL "")
+  set(WITH_LOGS_PREVIEW OFF CACHE BOOL "")
+  set(WITH_BENCHMARK OFF CACHE BOOL "")
+  set(WITH_ABI_VERSION_1 OFF CACHE BOOL "")
+  set(WITH_ABI_VERSION_2 ON CACHE BOOL "")
+  add_subdirectory(third_party/opentelemetry-cpp)
 endif()
 
 file(READ "version.txt" DYNOLOG_VERSION)
@@ -72,7 +87,9 @@ target_link_libraries(dynolog_lib PUBLIC gflags::gflags)
 
 # https://github.com/nlohmann/json#cmake
 set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(third_party/json)
+if(NOT TARGET nlohmann_json)
+  add_subdirectory(third_party/json)
+endif()
 target_link_libraries(dynolog_lib PUBLIC nlohmann_json::nlohmann_json)
 
 add_subdirectory(third_party/pfs)

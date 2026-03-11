@@ -9,7 +9,9 @@
 
 set -eux -o pipefail
 BUILD_PROMETHEUS="${BUILD_PROMETHEUS:-0}"
+BUILD_OTLP="${BUILD_OTLP:-0}"
 USE_PROMETHEUS="OFF"
+USE_OTLP="OFF"
 
 # Check dependencies
 cmake --version || echo "Please install cmake for your platform using dnf/apt-get etc."
@@ -36,12 +38,21 @@ then
   popd
 fi
 
+## Initialize opentelemetry-cpp submodule if OTLP is enabled
+if [ "${BUILD_OTLP}" -eq 1 ]
+then
+  git submodule update --init --recursive -- third_party/opentelemetry-cpp
+
+  USE_OTLP="ON"
+fi
+
 ## Build dynolog
 echo "Running cmake"
 mkdir -p build; cd build;
 
 # note we can build without ninja if not available on this system
 cmake "-DUSE_PROMETHEUS=${USE_PROMETHEUS}" \
+  "-DUSE_OTLP=${USE_OTLP}" \
   -DCMAKE_BUILD_TYPE=Release -G Ninja "$@" ..
 cmake --build .
 

@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 3.16)
 add_definitions(-DDYNOLOG_VERSION=${DYNOLOG_VERSION} -DDYNOLOG_GIT_REV=${DYNOLOG_GIT_REV})
 
 message("Use Prometheus = ${USE_PROMETHEUS}")
+message("Use OTLP = ${USE_OTLP}")
 message("Use ODS Graph API = ${USE_ODS_GRAPH_API}")
 
 # our build script will first create a src/ dir where all source code will exist
@@ -26,6 +27,20 @@ if(USE_PROMETHEUS)
   find_package(prometheus-cpp CONFIG REQUIRED)
   add_definitions(-DUSE_PROMETHEUS)
   target_link_libraries(dynolog_lib PRIVATE prometheus-cpp::pull)
+endif()
+
+if(USE_OTLP)
+  target_compile_definitions(dynolog_lib PRIVATE USE_OTLP)
+  # PUBLIC linkage is required because dynolog_lib is a static library:
+  # downstream targets (e.g. dynolog executable) need otel symbols at link time.
+  # Header leakage is prevented by #ifdef USE_OTLP guards in OTLPLogger.h.
+  target_link_libraries(dynolog_lib PUBLIC
+    opentelemetry-cpp::metrics
+    opentelemetry-cpp::otlp_grpc_metrics_exporter
+    opentelemetry-cpp::otlp_http_metric_exporter
+    opentelemetry-cpp::resources
+    opentelemetry-cpp::common
+  )
 endif()
 
 target_link_libraries(dynolog_lib PUBLIC Monitor)
